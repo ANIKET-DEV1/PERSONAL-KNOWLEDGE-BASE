@@ -11,7 +11,7 @@ class User(Base):
     __tablename__="users"
     id:Mapped[int]=mapped_column(BigInteger,Identity(always=True),primary_key=True)
     name:Mapped[str]=mapped_column(String(20),nullable=False)
-    email:Mapped[str]=mapped_column(String(30),nullable=False,unique=True)
+    email_id:Mapped[str]=mapped_column(String(30),nullable=False,unique=True)
     hashed_password:Mapped[str]=mapped_column(Text,nullable=False)
     created_at:Mapped[datetime]=mapped_column(server_default=func.now())
 

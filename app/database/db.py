@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker,DeclarativeBase
 from app.config.app_config import getAppconfig
 
-url=getAppconfig().database_url
+url = getAppconfig().database_url.get_secret_value()
 engine= create_engine(url,pool_pre_ping=True)
 
 SessionLocal = sessionmaker(
