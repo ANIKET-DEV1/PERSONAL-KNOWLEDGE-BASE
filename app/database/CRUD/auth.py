@@ -55,13 +55,13 @@ def register_user(db:Session,user:UserCreate):
             detail=f"Database error occurred: {str(e.__class__.__name__)}"
         )
 
-def Authentitacate(db:Session,cred:UserLogin):
-    user = db.execute(select(models.User).where(models.User.email_id == cred.email_id)).scalars().first()
+def Authentitacate(db:Session,email_id:str,password:str):
+    user = db.execute(select(models.User).where(models.User.email_id == email_id)).scalars().first()
     print(user)
     if not user:
         return None
     
-    if not PasswordHasher.verify(cred.password, user.hashed_password):
+    if not PasswordHasher.verify(password, user.hashed_password):
         return None
 
     return user

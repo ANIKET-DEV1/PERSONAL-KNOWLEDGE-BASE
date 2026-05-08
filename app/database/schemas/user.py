@@ -22,5 +22,5 @@ class UserLogin(BaseModel):
 
 class UserOut(UserBase):
     id:int
-    create_at:datetime
+    created_at:datetime
     model_config = ConfigDict(from_attributes=True)

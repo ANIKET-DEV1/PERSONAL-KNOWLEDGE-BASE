@@ -1,20 +1,23 @@
 from jose import jwt,JWTError
 from fastapi import Depends,HTTPException,status
 from sqlalchemy.orm import Session
+from sqlalchemy import select
+
 from .database.db import get_db
 from .database.models.models import User
 from datetime import datetime,timedelta,timezone
 from .database.schemas.auth import TokenData
+from fastapi.security import OAuth2PasswordBearer
 from .config.app_config import getAppconfig
 system=getAppconfig()
 SECRET_KEY = system.secret_key.get_secret_value()
 ALGORITHM = system.algorithms
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 def verify_token(token:str,credential_exception):
     try:
         payload=jwt.decode(token,SECRET_KEY,algorithms=[ALGORITHM])
         user_id:str = payload.get("sub")
-         
         if user_id is None:
             raise credential_exception
     
@@ -37,7 +40,7 @@ def create_access_token(data:dict):
     return encoded_jwt
 
 def get_curr_user(
-        token:str,
+        token:str=Depends(oauth2_scheme),
         db:Session = Depends(get_db)
 ):
     credential_exception=HTTPException(
@@ -47,7 +50,8 @@ def get_curr_user(
     )
 
     token_data=verify_token(token,credential_exception)
-    user=db.query(User).filter(User.id==token_data.user_id).first()
+    query = select(User).where(User.id == token_data.user_id)
+    user = db.execute(query).scalars().first()
     if user is None:
         raise credential_exception
     return user
