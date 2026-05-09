@@ -1,4 +1,4 @@
-from fastapi import FastAPI,Path,HTTPException,status,Depends,APIRouter
+from fastapi import FastAPI,Path,HTTPException,status,Depends,APIRouter,Response
 from sqlalchemy.orm import Session
 from app.database.db import get_db
 from app.database.schemas.user import UserCreate,UserLogin,UserOut
@@ -21,14 +21,24 @@ def register(user:UserCreate,db:Session = Depends(get_db)):
 
 
 
-@auth.post("/login",response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), 
+@auth.post("/login")
+def login(response:Response,form_data: OAuth2PasswordRequestForm = Depends(), 
     db: Session = Depends(get_db)):
-    user=Authentitacate(db=db,email_id=form_data.username,password=form_data.password)
+    user=Authentitacate(db=db,
+                        email_id=form_data.username,
+                        password=form_data.password
+                        )
     if not user:
         raise HTTPException(status_code=403,detail="Invalid Crendential")
     token={"sub":str(user.id)}
     access_token=create_access_token(data=token)
-
-    return {"access_token": access_token, "token_type": "bearer"}
+    response.set_cookie(
+    key="access_token",
+    value= f"Bearer {access_token}",
+    httponly=True,   
+    max_age=1800,    
+    samesite="lax",  
+    secure=True
+    )
+    return {"Message Login Succesfully"}
 

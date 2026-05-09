@@ -1,11 +1,10 @@
 from jose import jwt,JWTError
-from fastapi import Depends,HTTPException,status
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import select
-
+from fastapi import Request
 from .database.db import get_db
 from .database.models.models import User
-from datetime import datetime,timedelta,timezone
+from datetime import datetime, timedelta, timezone
 from .database.schemas.auth import TokenData
 from fastapi.security import OAuth2PasswordBearer
 from .config.app_config import getAppconfig
@@ -14,14 +13,19 @@ SECRET_KEY = system.secret_key.get_secret_value()
 ALGORITHM = system.algorithms
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-def verify_token(token:str,credential_exception):
+def verify_token(token: str, credential_exception: HTTPException | None = None):
+    if credential_exception is None:
+        credential_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+        )
     try:
-        payload=jwt.decode(token,SECRET_KEY,algorithms=[ALGORITHM])
-        user_id:str = payload.get("sub")
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credential_exception
-    
-        token_data= TokenData(user_id=user_id)
+
+        token_data = TokenData(user_id=user_id)
         return token_data
     except JWTError:
         raise credential_exception
@@ -40,18 +44,23 @@ def create_access_token(data:dict):
     return encoded_jwt
 
 def get_curr_user(
-        token:str=Depends(oauth2_scheme),
-        db:Session = Depends(get_db)
+        request: Request,
+        db: Session = Depends(get_db)
 ):
-    credential_exception=HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not Validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    token = request.cookies.get("access_token")
+    if not token or not token.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
 
-    token_data=verify_token(token,credential_exception)
-    query = select(User).where(User.id == token_data.user_id)
-    user = db.execute(query).scalars().first()
+    token_str = token.split(" ")[1]
+
+    token_data = verify_token(token_str)
+    user = db.query(User).filter(User.id == token_data.user_id).first()
     if user is None:
-        raise credential_exception
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found"
+        )
     return user

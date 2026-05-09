@@ -4,7 +4,7 @@ from sqlalchemy.orm import Mapped,mapped_column,relationship
 from sqlalchemy import String,ForeignKey,Text,Boolean,DateTime,BigInteger,func,Identity
 from app.database.db import Base
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 
 class User(Base):
@@ -22,9 +22,10 @@ class Note(Base):
     id:Mapped[int]=mapped_column(BigInteger,Identity(always=True),primary_key=True)
     user_id:Mapped[int]=mapped_column(ForeignKey("users.id"),nullable=False)
     title:Mapped[str]=mapped_column(String(200),nullable=False)
+    content:Mapped[str]=mapped_column(Text,nullable=False)
     tags:Mapped[str]=mapped_column(Text,nullable=True)
     is_archived: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(onupdate=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(nullable=True, onupdate=func.now())
 
     owner: Mapped["User"] = relationship(back_populates="notes")
