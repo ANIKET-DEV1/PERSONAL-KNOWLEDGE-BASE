@@ -5,9 +5,10 @@ A FastAPI backend for a personal knowledge base with JWT-based authentication an
 ## Features
 - User registration and login
 - JWT access token generation
-- Cookie-based authentication (`access_token`)
-- User profile endpoint
+- Bearer-token authentication (`Authorization: Bearer <token>`)
+- Current user endpoint
 - Notes CRUD (create, update, list, get by ID, delete)
+- Note search endpoint
 - PostgreSQL + SQLAlchemy ORM
 
 ## Tech Stack
@@ -21,29 +22,30 @@ A FastAPI backend for a personal knowledge base with JWT-based authentication an
 
 ## Project Structure
 ```text
-app/
-  app.py
-  JWT.py
-  config/
-    app_config.py
-  database/
-    db.py
-    models/
-      models.py
-    schemas/
-      user.py
-      auth.py
-      note.py
-    CRUD/
-      auth.py
-      note.py
-  routing/
-    auth.py
-    user.py
-    note.py
-main.py
-requirements.txt
-.env.example
+Personal-knowledge-base/
+|-- app/
+|   |-- app.py
+|   |-- JWT.py
+|   |-- config/
+|   |   `-- app_config.py
+|   |-- database/
+|   |   |-- db.py
+|   |   |-- models/
+|   |   |   `-- models.py
+|   |   |-- schemas/
+|   |   |   |-- auth.py
+|   |   |   |-- note.py
+|   |   |   `-- user.py
+|   |   `-- CRUD/
+|   |       |-- auth.py
+|   |       `-- note.py
+|   `-- routing/
+|       |-- auth.py
+|       |-- note.py
+|       `-- user.py
+|-- main.py
+|-- requirements.txt
+`-- .env.example
 ```
 
 ## Environment Variables
@@ -89,8 +91,9 @@ After startup:
 ## Authentication Flow
 1. Register with `POST /auth/register`
 2. Login with `POST /auth/login`
-3. Login sets `access_token` cookie (`Bearer <jwt>`)
-4. Protected endpoints read the cookie in `get_curr_user`
+3. Copy `access_token` from response
+4. Send header: `Authorization: Bearer <access_token>` for protected endpoints
+5. In Swagger, click `Authorize` and paste the bearer token
 
 ## Main Endpoints
 
@@ -99,14 +102,15 @@ After startup:
 - `POST /auth/login`
 
 ### User
-- `GET /user/profile`
+- `GET /users/me`
 
 ### Notes
-- `POST /notes/add`
-- `PUT /notes/update?NoteID={id}`
-- `GET /notes/view`
+- `POST /notes`
+- `GET /notes`
 - `GET /notes/{note_id}`
-- `DELETE /notes/delete/{NoteID}`
+- `PUT /notes/{note_id}`
+- `DELETE /notes/{note_id}`
+- `GET /notes/search?q=...`
 
 ## Request Examples
 
@@ -133,9 +137,9 @@ username=aniket@example.com&password=Test12345
 
 ### Add Note
 ```http
-POST /notes/add
+POST /notes
 Content-Type: application/json
-Cookie: access_token=Bearer <jwt>
+Authorization: Bearer <jwt>
 
 {
   "title": "My first note",
@@ -147,9 +151,9 @@ Cookie: access_token=Bearer <jwt>
 
 ### Update Note
 ```http
-PUT /notes/update?NoteID=7
+PUT /notes/7
 Content-Type: application/json
-Cookie: access_token=Bearer <jwt>
+Authorization: Bearer <jwt>
 
 {
   "title": "Updated title",
@@ -158,7 +162,7 @@ Cookie: access_token=Bearer <jwt>
 ```
 
 ## Notes
-- `secure=True` is used for auth cookie in login route. On plain HTTP/local non-HTTPS clients, cookie behavior can vary.
+- Login uses `OAuth2PasswordRequestForm`, so send `username` and `password` as form data, not JSON.
 - Notes are user-scoped: you can access/update/delete only your own notes.
 - If you changed the `Note.updated_at` model to nullable, make sure DB schema matches:
 

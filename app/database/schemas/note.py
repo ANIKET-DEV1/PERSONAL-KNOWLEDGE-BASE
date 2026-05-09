@@ -20,4 +20,4 @@ class NoteOut(NoteBase):
     user_id:int
     is_archived:bool
     created_at:datetime
-    updated_at:datetime
+    updated_at:Optional[datetime]=None

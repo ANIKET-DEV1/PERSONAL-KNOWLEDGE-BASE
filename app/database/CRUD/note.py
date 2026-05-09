@@ -1,46 +1,44 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from app.database.models.models import Note,User
-from fastapi import HTTPException,status
-from app.database.schemas.note import NoteCreate,NoteUpdate,NoteOut
-from app.database.models import models
+from app.database.models.models import Note
+from fastapi import HTTPException
+from app.database.schemas.note import NoteCreate, NoteUpdate
 
-def Notecreate(db:Session,createNote:NoteCreate,user_id:int):
-    db_note=Note(
-            title=createNote.title,
-            content=createNote.content,
-            tags=createNote.tags,
-            is_archived=createNote.is_archived,
+def create_note(db: Session, create_note_data: NoteCreate, user_id: int):
+    db_note = Note(
+            title=create_note_data.title,
+            content=create_note_data.content,
+            tags=create_note_data.tags,
+            is_archived=create_note_data.is_archived,
             user_id=user_id
     )
     try:
         db.add(db_note)
         db.commit()
         db.refresh(db_note)
-        return True
+        return db_note
     except:
-        raise HTTPException(503,detail="failed to store Data")
+        db.rollback()
+        raise HTTPException(503, detail="failed to store Data")
 
 
-def UpdateUnote(db:Session,NoteId:int,updateNote:NoteUpdate,user_id:int):
-        res = db.query(Note).filter(Note.id == NoteId, Note.user_id == user_id).first()
+def update_note(db: Session, note_id: int, update_note_data: NoteUpdate, user_id: int):
+        res = db.query(Note).filter(Note.id == note_id, Note.user_id == user_id).first()
         if res is None:
-                raise HTTPException(404, detail="Note Not Found")
+                raise HTTPException(404, detail="Note not found")
 
-        if updateNote.title is not None:
-                res.title = updateNote.title
-        if updateNote.content is not None:
-                res.content = updateNote.content
-        if updateNote.tags is not None:
-                res.tags = updateNote.tags
-        if updateNote.is_archived is not None:
-                res.is_archived = updateNote.is_archived
+        if update_note_data.title is not None:
+                res.title = update_note_data.title
+        if update_note_data.content is not None:
+                res.content = update_note_data.content
+        if update_note_data.tags is not None:
+                res.tags = update_note_data.tags
+        if update_note_data.is_archived is not None:
+                res.is_archived = update_note_data.is_archived
 
         try:
                 db.commit()
                 db.refresh(res)
-                return True
+                return res
         except:
                 db.rollback()
                 raise HTTPException(503, detail="failed to update Data")

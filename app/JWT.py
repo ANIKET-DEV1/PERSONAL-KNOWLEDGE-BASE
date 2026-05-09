@@ -1,7 +1,6 @@
 from jose import jwt,JWTError
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from fastapi import Request
 from .database.db import get_db
 from .database.models.models import User
 from datetime import datetime, timedelta, timezone
@@ -44,19 +43,10 @@ def create_access_token(data:dict):
     return encoded_jwt
 
 def get_curr_user(
-        request: Request,
+        token: str = Depends(oauth2_scheme),
         db: Session = Depends(get_db)
 ):
-    token = request.cookies.get("access_token")
-    if not token or not token.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated"
-        )
-
-    token_str = token.split(" ")[1]
-
-    token_data = verify_token(token_str)
+    token_data = verify_token(token)
     user = db.query(User).filter(User.id == token_data.user_id).first()
     if user is None:
         raise HTTPException(
